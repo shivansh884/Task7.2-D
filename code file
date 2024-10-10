@@ -1,0 +1,61 @@
+import speech_recognition as sr  # Library for speech recognition
+import RPi.GPIO as GPIO          # Library for controlling GPIO pins on Raspberry Pi
+import time                      # Time library for delays
+
+# Set up GPIO
+LED_PIN = 17                     # Define GPIO pin number for the LED
+GPIO.setmode(GPIO.BCM)            # Set GPIO mode to BCM (Broadcom pin-numbering scheme)
+GPIO.setup(LED_PIN, GPIO.OUT)     # Set up LED pin as output
+
+# Initialize recognizer for speech recognition
+recognizer = sr.Recognizer()
+
+def listen_for_command():
+    """
+    Listens for a voice command using the microphone.
+    Returns the recognized command as text or None if not understood.
+    """
+    with sr.Microphone() as source:   # Use microphone as input source
+        print("Listening for command...")  # Prompt user to speak
+        audio = recognizer.listen(source)  # Listen to audio from the microphone
+        
+        try:
+            # Try to recognize the speech using Google's speech recognition service
+            command = recognizer.recognize_google(audio)
+            print(f"You said: {command}")
+            return command
+        
+        except sr.UnknownValueError:
+            # Handle case where the speech was not understood
+            print("Could not understand audio")
+            return None
+        
+        except sr.RequestError as e:
+            # Handle errors when connecting to the Google speech recognition service
+            print(f"Could not request results from Google Speech Recognition service; {e}")
+            return None
+
+def control_light(command):
+    """
+    Controls the LED based on the recognized voice command.
+    If the command contains "turn on", it turns on the light.
+    If the command contains "turn off", it turns off the light.
+    """
+    if "turn on" in command:          # If the command contains "turn on"
+        GPIO.output(LED_PIN, GPIO.HIGH)  # Turn on the LED
+        print("Light turned ON")
+    elif "turn off" in command:       # If the command contains "turn off"
+        GPIO.output(LED_PIN, GPIO.LOW)   # Turn off the LED
+        print("Light turned OFF")
+
+try:
+    # Continuously listen for commands and control the light
+    while True:
+        command = listen_for_command()  # Listen for a voice command
+        if command:                     # If a valid command is recognized
+            control_light(command)      # Control the light based on the command
+
+except KeyboardInterrupt:
+    # Clean up GPIO settings before exiting the program when interrupted (Ctrl+C)
+    GPIO.cleanup()
+    print("Program terminated")
